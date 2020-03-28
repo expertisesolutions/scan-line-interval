@@ -8,4 +8,5 @@ import testing : run ;
 alias event_scan : : : : <include>include ;
 
 alias testsuite :
- [ run tests/event_scan1.cpp event_scan ] ;
+ [ run tests/event_scan1.cpp event_scan ]
+ [ run tests/event_scan_2d_1.cpp event_scan ] ;

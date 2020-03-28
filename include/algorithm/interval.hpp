@@ -23,10 +23,10 @@ std::ostream& operator<<(std::ostream& os, std::pair<T, T> i)
 }
   
 template <typename T, typename Enable = void>
-struct event_position_type;
+struct interval_position_type;
 
 template <typename T>
-struct event_position_type<std::pair<T, T>>
+struct interval_position_type<std::pair<T, T>>
 {
   typedef T type;
 };

@@ -7,7 +7,6 @@
 //
 
 #include <algorithm/event_scan.hpp>
-#include <algorithm/interval.hpp>
 
 #include <set>
 #include <vector>
@@ -45,5 +44,5 @@ int main()
        }
      );
 
-  return -1;
+  return 0;
 }
