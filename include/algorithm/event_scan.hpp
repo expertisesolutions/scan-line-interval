@@ -13,24 +13,10 @@
 
 #include <algorithm>
 #include <ostream>
+#include <cassert>
+#include <iostream>
 
 namespace exp { namespace algorithm {
-
-inline std::ostream& operator<<(std::ostream& os, event_type t)
-{
-  switch (t)
-  {
-  case event_type::start:
-    return os << "start";
-    break;
-  case event_type::end:
-    return os << "end";
-    break;
-  default:
-    return os << "unknown";
-    break;
-  }
-}
 
 template <typename ActiveContainer, typename Container, typename Open, typename Close>
 void scan_events (ActiveContainer&& actives, Container const& c, Open&& open, Close&& close)
@@ -38,18 +24,22 @@ void scan_events (ActiveContainer&& actives, Container const& c, Open&& open, Cl
   std::less<typename Container::value_type> compare;
   for (auto&& i : c)
   {
-    if (i == event_type::start)
+    using algorithm::event_api::is_begin_event;
+    using algorithm::event_api::is_end_event;
+    using algorithm::event_api::get_opposite_event;
+    if (is_begin_event(i))
     {
       actives.push_back (i);
       open (actives, i);
     }
-    else
+    else if (is_end_event(i))
     {
-      // to be faster... lower_bound on position
-      auto it = std::lower_bound (actives.begin(), actives.end(), i, compare);
-      // std::remove_if (actives.begin(), actives.end(), [&i] (auto&& other) { return match_event_edges (other, i); });
-      // actives.pop_back ();
-      //while (
+      auto opposite = get_opposite_event(i);
+      std::cout << "searching for " << opposite << std::endl;
+      auto it = std::lower_bound (actives.begin(), actives.end(), opposite, compare);
+      while (it != actives.end() && *it != opposite)
+        ++it;
+      assert (it != actives.end());
       actives.erase (it);
       close (actives, i);
     }
