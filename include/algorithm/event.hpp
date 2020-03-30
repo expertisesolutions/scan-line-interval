@@ -37,6 +37,10 @@ inline event_type operator~(event_type t)
 {
   return t == event_type::begin ? event_type::end : event_type::begin;
 }
+inline bool operator<(event_type l, event_type r)
+{
+  return l > r;
+}
 
 template <typename I>
 struct event

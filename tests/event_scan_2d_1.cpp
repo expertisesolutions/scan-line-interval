@@ -127,8 +127,10 @@ int main()
          for (auto current = actives_0.begin()
                 ;current != begin_0_insertion_point; ++current)
          {
+           using exp::algorithm::event_api::get_position;
            assert (current->type == event_type::begin);
-           *exp::algorithm::interval_inserter<event_1> (overlapped_0) = interval_1{current->interval.rectangle};
+           if (get_position (*current) != get_position (e))
+             *exp::algorithm::interval_inserter<event_1> (overlapped_0) = interval_1{current->interval.rectangle};
          }
          for (auto current = begin_0_insertion_point
                 ;current != end_0_insertion_point; ++current)
@@ -144,8 +146,13 @@ int main()
                                         {
                                           for (auto&& p : parameters)
                                           {
-                                            if (edges.find (std::make_pair(p.interval.rectangle, e_1.interval.rectangle)) == edges.end())
+                                            using exp::algorithm::event_api::get_position;
+                                            if (get_position (p) != get_position (e_1)
+                                                && edges.find (std::make_pair(p.interval.rectangle, e_1.interval.rectangle)) == edges.end())
+                                            {
                                               edges.insert (std::make_pair(e_1.interval.rectangle, p.interval.rectangle));
+                                              std::cout << "overlap " << e_1.interval.rectangle << " with " << p.interval.rectangle << std::endl;
+                                            }
                                           }
                                         });
        }
@@ -153,18 +160,6 @@ int main()
 
   std::cout << "edges: " << edges.size() << std::endl;
 
-  auto edge_current = edges.begin()
-    , edge_last = edges.end();
-  while (edge_current != edge_last)
-  {
-    auto r = edge_current->first;
-    while (edge_current != edge_last && edge_current->first == r)
-    {
-      ++edge_current;
-    }
-  }
-  
-  
   std::cout << "finsihed" << std::endl;
   return -1;
 }
