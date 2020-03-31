@@ -161,5 +161,5 @@ int main()
   std::cout << "edges: " << edges.size() << std::endl;
 
   std::cout << "finsihed" << std::endl;
-  return -1;
+  return 0;
 }

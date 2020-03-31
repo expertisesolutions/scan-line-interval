@@ -18,6 +18,11 @@
 
 namespace exp { namespace algorithm {
 
+enum class sweep_interrupt
+{
+  continue_, break_
+};
+
 template <typename ActiveContainer, typename Container, typename Open, typename Close>
 void scan_events (ActiveContainer&& actives, Container const& c, Open&& open, Close&& close)
 {
@@ -34,20 +39,20 @@ void scan_events (ActiveContainer&& actives, Container const& c, Open&& open, Cl
     }
     else if (is_end_event(i))
     {
+      close (actives, i);
       auto opposite = get_opposite_event(i);
-      //std::cout << "searching for " << opposite << std::endl;
       auto it = std::lower_bound (actives.begin(), actives.end(), opposite, compare);
       while (it != actives.end() && *it != opposite)
         ++it;
       assert (it != actives.end());
       actives.erase (it);
-      close (actives, i);
     }
   }
 }
 
 template <typename ActiveContainer, typename Container, typename Close>
-void scan_events (ActiveContainer&& actives, Container const& c, std::nullptr_t, Close&& close)
+std::enable_if<std::is_same<void, typename std::invoke_result<Close&&, ActiveContainer&&, typename Container::value_type&&>::type>::value>::type
+  scan_events (ActiveContainer&& actives, Container const& c, std::nullptr_t, Close&& close)
 {
   std::less<typename Container::value_type> compare;
   for (auto&& i : c)
@@ -61,14 +66,41 @@ void scan_events (ActiveContainer&& actives, Container const& c, std::nullptr_t,
     }
     else if (is_end_event(i))
     {
+      close (actives, i);
       auto opposite = get_opposite_event(i);
-      //std::cout << "searching for " << opposite << std::endl;
       auto it = std::lower_bound (actives.begin(), actives.end(), opposite, compare);
       while (it != actives.end() && *it != opposite)
         ++it;
       assert (it != actives.end());
       actives.erase (it);
-      close (actives, i);
+    }
+  }
+}
+
+template <typename ActiveContainer, typename Container, typename Close>
+std::enable_if<std::is_same<sweep_interrupt, typename std::invoke_result<Close&&, ActiveContainer&&, typename Container::value_type&&>::type>::value, sweep_interrupt>::type
+  scan_events (ActiveContainer&& actives, Container const& c, std::nullptr_t, Close&& close)
+{
+  std::less<typename Container::value_type> compare;
+  for (auto&& i : c)
+  {
+    using algorithm::event_api::is_begin_event;
+    using algorithm::event_api::is_end_event;
+    using algorithm::event_api::get_opposite_event;
+    if (is_begin_event(i))
+    {
+      actives.push_back (i);
+    }
+    else if (is_end_event(i))
+    {
+      if (close (actives, i) == sweep_interrupt::break_)
+        break;
+      auto opposite = get_opposite_event(i);
+      auto it = std::lower_bound (actives.begin(), actives.end(), opposite, compare);
+      while (it != actives.end() && *it != opposite)
+        ++it;
+      assert (it != actives.end());
+      actives.erase (it);
     }
   }
 }
