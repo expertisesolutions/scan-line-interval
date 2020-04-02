@@ -89,7 +89,6 @@ std::enable_if<std::is_same<sweep_interrupt, typename std::invoke_result<Close&&
     using algorithm::event_api::get_opposite_event;
     if (is_begin_event(i))
     {
-      std::cout << "opening " << i << std::endl;
       actives.push_back (i);
     }
     else if (is_end_event(i))
@@ -102,7 +101,6 @@ std::enable_if<std::is_same<sweep_interrupt, typename std::invoke_result<Close&&
         ++it;
       assert (it != actives.end());
       actives.erase (it);
-      std::cout << "closed " << i << std::endl;
     }
   }
   return sweep_interrupt::continue_;
