@@ -37,10 +37,6 @@ inline event_type operator~(event_type t)
 {
   return t == event_type::begin ? event_type::end : event_type::begin;
 }
-inline bool operator<(event_type l, event_type r)
-{
-  return l > r;
-}
 
 template <typename I>
 struct event
@@ -95,6 +91,8 @@ bool operator<(event<I> const& l, event<I> const& r)
        ? get_interval_end (l.interval) < get_interval_end (r.interval)
        : get_interval_begin (l.interval) < get_interval_begin (r.interval)
       )
+    : event_api::get_position(l) == event_api::get_position(r)
+    ? l.type < r.type
     : event_api::get_position(l) < event_api::get_position(r);
 }
 template <typename I>

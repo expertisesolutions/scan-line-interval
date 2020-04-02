@@ -132,6 +132,268 @@ int get_interval_end (interval<1> i)
   return i.rectangle.y2;
 }
 
+void erase_rectangle (std::multiset<exp::algorithm::event<interval<0>>>& set
+                      , rectangle r)
+{
+  auto range = set.equal_range ({exp::algorithm::event_type::begin, {r}});
+  while (range.first != range.second && range.first->interval.rectangle != r)
+    ++range.first;
+  assert (range.first != range.second);
+  set.erase (range.first);
+
+  range = set.equal_range ({exp::algorithm::event_type::end, {r}});
+  while (range.first != range.second && range.first->interval.rectangle != r)
+    ++range.first;
+  assert (range.first != range.second);
+  set.erase (range.first);
+}
+
+void add_rectangle (std::multiset<exp::algorithm::event<interval<0>>>& set
+                    , rectangle r)
+{
+  if (r.x1 == r.x2 || r.y1 == r.y2)
+    return;
+
+  assert (r.x1 < r.x2 && r.y1 < r.y2);
+  
+  typedef interval<0> interval_0;
+  typedef exp::algorithm::event<interval_0> event_0;
+  using exp::algorithm::event_api::get_opposite_event;
+  auto e = event_0{exp::algorithm::event_type::begin, {r}};
+  auto size = set.size();
+  assert (size % 2 == 0);
+  set.insert (e);
+  set.insert (get_opposite_event(e));
+  assert (size + 2 == set.size());
+}
+
+void add_rectangle_subtraction (std::multiset<exp::algorithm::event<interval<0>>>& set
+                                , rectangle l, rectangle r)
+{
+  
+}
+
+void fill (std::vector<rectangle>& out, std::vector<rectangle> left, std::vector<rectangle> right)
+{
+  auto cmp = [] (rectangle r, rectangle l)
+             {
+               return r.y1 == l.y1
+                 ? r.y2 < l.y2
+                 : r.y1 < l.y1;
+             };
+  for (auto&& a : left)
+  {
+    auto it = std::lower_bound (right.begin(), right.end(), a, cmp);
+    if (it != right.end() && a == *it)
+    {
+      out.push_back (a);
+    }
+  }
+}
+
+void handle_before_before (std::vector<rectangle> v
+                           , bool until_end_0
+                           , rectangle rold
+                           , std::multiset<exp::algorithm::event<interval<0>>>& set)
+{
+  std::cout << "before_before: " << v.size() << std::endl;
+  for (auto&& r : v)
+    std::cout << "   " << r << std::endl;
+  if (until_end_0)
+  {
+    std::cout << "== completely overrides" << std::endl;
+  }
+  else 
+  {
+    // |-------------|
+    // |    v[i]     |
+    // |             |
+    // |  |-------|  |
+    // |  |xxxxxxx|  |
+    // |--+-------+--|
+    //    | rold  |
+    //    |-------|
+    // splits horizontal line, covering the top
+
+    std::cout << "== must redo rectangle making x1 be bigger, replacing for a single rectangle" << std::endl;
+
+    int new_x1 = rold.x1;
+    for (auto&& r : v)
+      new_x1 = std::max (new_x1, r.x2);
+
+    rectangle rnew = {new_x1, rold.x2, rold.y1, rold.y2};
+    add_rectangle (set, rnew);
+  }
+}
+
+void handle_before_after (std::vector<rectangle> v
+                          , bool until_end_0
+                          , rectangle rold
+                          , std::multiset<exp::algorithm::event<interval<0>>>& set)
+{
+  using exp::algorithm::event_api::get_opposite_event;
+  std::cout << "before_after: " << v.size() << std::endl;
+  assert (!v.empty());
+  for (auto&& r : v)
+    std::cout << "   " << r << std::endl;
+  if (until_end_0)
+  {
+    //     |------|
+    //     | rold |
+    // |---|------|--|
+    // |   |xxxxxx|  |
+    // |   |xxxxxx|  |
+    // |   |--+---|  |
+    // |     v[i]    |
+    // |-------------|
+    // splits with horizontal line, covering the bottom
+
+    int new_y2 = rold.y2;
+    for (auto&& r : v)
+      new_y2 = std::min(new_y2, r.y1);
+    rectangle rnew {rold.x1, rold.x2, rold.y1, new_y2};
+    add_rectangle (set, rnew);
+    std::cout << "== must redo rectangle making y2 be smaller, replacing for the rectangle " << rnew << std::endl;
+  }
+  else
+  {
+    //     |------|
+    //     | rold |
+    // |---|--|   |
+    // |   |xx|   |
+    // |   |xx|   |
+    // |   |--+---|
+    // | v[0] |
+    // |------|
+    // covers rectangle in bottom-left
+
+    auto new_x1 = v[0].x2;
+    auto new_y2 = v[0].y1;
+
+    rectangle r1 {rold.x1, rold.x2, rold.y1, new_y2};
+    rectangle r2 {new_x1, rold.x2, new_y2, rold.y2};
+    assert (set.size() % 2 == 0);
+    add_rectangle (set, r1);
+    add_rectangle (set, r2);
+    assert (set.size() % 2 == 0);
+    std::cout << "== replace overlap with " << v[0] << " with two rectangles " << r1 << " and " << r2 << std::endl;
+  }
+}
+
+void handle_after_after (std::vector<rectangle> v
+                         , bool until_end_0
+                         , rectangle rold
+                         , std::multiset<exp::algorithm::event<interval<0>>>& set)
+{
+  std::cout << "== after_after: " << v.size() << std::endl;
+  for (auto&& r : v)
+    std::cout << "   " << r << std::endl;
+  if (until_end_0) // 
+  {
+    //
+    //
+    //  |---------|
+    //  |rold     |
+    //  |     |---+--|
+    //  |     |xxx|  |
+    //  |     |xxx|  |
+    //  |-----+---|  |
+    //        | v[i] |
+    //        |------|
+    //  covers rectangle in bottom-right
+    
+    auto new_x1 = v[0].x1;
+    auto new_y2 = v[0].y1;
+
+    rectangle r1 {rold.x1, new_x1, rold.y1, rold.y2};
+    rectangle r2 {new_x1, rold.x2, rold.y1, new_y2};
+    assert (set.size() % 2 == 0);
+    add_rectangle (set, r1);
+    add_rectangle (set, r2);
+    assert (set.size() % 2 == 0);
+    std::cout << "== replace overlap with " << v[0] << " with two rectangles " << r1 << " and " << r2 << std::endl;
+  }
+  else
+  {
+    // |-------------|
+    // |     rold    |
+    // |             |
+    // |   |------|  |
+    // |   |xxxxxx|  |
+    // |---+------+--|
+    //     | v[i] |
+    //     |------|
+    //  covers rectangle in bottom-middle
+
+    // three rectangles
+    auto new_x2 = v[0].x1;
+    auto new_x1 = v[0].x2;
+    auto new_y1 = v[0].y1;
+
+    rectangle r1 {rold.x1, rold.x2, rold.y1, new_y1};
+    rectangle r2 {rold.x1, new_x2, new_y1, rold.y2};
+    rectangle r3 {new_x1, rold.x2, new_y1, rold.y2};
+    assert (set.size() % 2 == 0);
+    add_rectangle (set, r1);
+    add_rectangle (set, r2);
+    add_rectangle (set, r3);
+    assert (set.size() % 2 == 0);
+    std::cout << "== replace overlap with " << v[0] << " with three rectangles " << r1 << ", " << r2 << " and " << r3 << std::endl;
+  }
+}
+
+void handle_after_before (std::vector<rectangle> v
+                          , bool until_end_0
+                          , rectangle rold
+                          , std::multiset<exp::algorithm::event<interval<0>>>& set)
+{
+  std::cout << "== after_before: " << v.size() << std::endl;
+  for (auto&& r : v)
+    std::cout << "   " << r << std::endl;
+  if (until_end_0) // 
+  {
+    //        |------|
+    //        |      |
+    //  |-----+---|  |
+    //  |rold |xxx|  |
+    //  |     |xxx|  |
+    //  |     |xxx|  |
+    //  |     |xxx|  |
+    //  |-----+---|  |
+    //        | v[i] |
+    //        |------|
+    // splits vertically, covering from the right
+    std::cout << "must redo rectangle making x be bigger, replacing for a single rectangle" << std::endl;
+
+    auto new_x2 = v[0].x1;
+    rectangle r1 {rold.x1, new_x2, rold.y1, rold.y2};
+    add_rectangle (set, r1);
+    std::cout << "== replace overlap with " << v[0] << " with rectangle " << r1 << std::endl;
+  }
+  else
+  {
+    //        |------|
+    //        |      |
+    //  |-----+------+---|
+    //  |rold |xxxxxx|   |
+    //  |     |xxxxxx|   |
+    //  |     |xxxxxx|   |
+    //  |     |xxxxxx|   |
+    //  |-----+------+---|
+    //        | v[i] |
+    //        |------|
+
+    // splits vertically in two parts, covering the middle
+    auto new_x2 = v[0].x1;
+    auto new_x1 = v[0].x2;
+    rectangle r1 {rold.x1, new_x2, rold.y1, rold.y2};
+    rectangle r2 {new_x1, rold.x2, rold.y1, rold.y2};
+    add_rectangle (set, r1);
+    add_rectangle (set, r2);
+    std::cout << "== replace overlap with " << v[0] << " with two rectangle " << r1 << " and " << r2 << std::endl;
+  }
+}
+
 int main()
 {
   using exp::algorithm::event_type;
@@ -152,22 +414,30 @@ int main()
        {  0,  10,   0,  35}
      , {  0,   5,  20,  30}
      , { 20,  30,  10,  20}
-     , {  0,  25,  30 , 50}};
+     , {  0,  20,  30 , 50}
+     , {  5,  20,  20,  35}};
   std::copy (rectangles.begin(), rectangles.end(), exp::algorithm::interval_inserter<event_0> (set));
 
-  exp::algorithm::scan_events
+  int avoid_infinite = 0;
+  
+  exp::algorithm::sweep_interrupt r = exp::algorithm::sweep_interrupt::break_;
+  while (r == exp::algorithm::sweep_interrupt::break_)
+  {
+    if (++avoid_infinite == 10)
+      return -1;
+    actives_0.clear();
+    std::cout << "scan_events for x. Set size " << set.size() << std::endl;
+  r = exp::algorithm::scan_events
     (actives_0, set
      , nullptr
-     , [&] (auto&& parameters_0, event_0 const& e_0)
+     , [&] (auto&& parameters_0, event_0 const& e_0) -> exp::algorithm::sweep_interrupt
        {
-         //std::cout << "parameters.size() " << parameters.size() << " e_0 " << e_0 << std::endl;
+         std::cout << "X overlaps " << e_0 << std::endl;
+         for (auto&& p : parameters_0) std::cout << "    " << p << std::endl;
          using exp::algorithm::event_api::get_opposite_event;
          overlapped_0.clear();
 
          assert (e_0.type == event_type::end);
-         // auto begin_0_insertion_point = std::lower_bound (actives_0.begin(), actives_0.end(), get_opposite_event(e_0));
-         // assert (begin_0_insertion_point != actives_0.end());
-         // assert (*begin_0_insertion_point == get_opposite_event(e_0));
          auto end_0_insertion_point = std::lower_bound (parameters_0.begin(), parameters_0.end(), e_0);
          assert (end_0_insertion_point == parameters_0.end());
 
@@ -181,129 +451,167 @@ int main()
          }
 
          actives_1.clear();
+         auto r =
          exp::algorithm::scan_events (actives_1, overlapped_0
                                       , nullptr
-                                      , [&] (auto parameters_1, event_1 const& e_1)
+                                      , [&] (auto parameters_1, event_1 const& e_1) -> exp::algorithm::sweep_interrupt
                                         {
-                                          using exp::algorithm::event_api::get_position;
                                           std::cout << "overlaps for " << e_1 << std::endl;
-                                          std::vector<rectangle> open_range_0;
-                                          auto found_0 = std::lower_bound (parameters_0.begin(), parameters_0.end(), get_opposite_event(e_0));
-                                          assert (std::lower_bound (parameters_0.begin(), parameters_0.end(), e_0) == parameters_0.end());
-                                          assert (*found_0 == get_opposite_event(e_0));
-                                          auto current_0 = parameters_0.begin();
-                                          assert (found_0 != parameters_0.end());
-                                          std::vector<rectangle> close_range_0;
-                                          std::vector<rectangle> open_range_1;
-                                          auto found_1 = std::lower_bound (parameters_1.begin(), parameters_1.end(), get_opposite_event(e_1));
-                                          assert (*found_1 == get_opposite_event(e_1));
-                                          // if (std::lower_bound (parameters_1.begin(), parameters_1.end(), e_1) != parameters_1.end())
-                                          //   std::cout << "e_1 pos: " << *std::lower_bound (parameters_1.begin(), parameters_1.end(), e_1)
-                                          //             << std::endl;
-                                          // assert (std::lower_bound (parameters_1.begin(), parameters_1.end(), e_1) == parameters_1.end());
-                                          auto current_1 = parameters_1.begin();
-                                          std::vector<rectangle> close_range_1;
+                                          std::cout << "parameters_0 " << parameters_0.size() << std::endl;
+                                          for (auto && p : parameters_0)
+                                          {
+                                            std::cout << "    " << p << std::endl;
+                                          }
+                                            std::cout << "parameters_1 " << parameters_1.size() << std::endl;
+                                            for (auto&& p : parameters_1) std::cout << "    " << p << std::endl;
+                                          if (parameters_1.size() == 1)
+                                            return exp::algorithm::sweep_interrupt::continue_;
+                                          else
+                                          {
+                                          }
+                                          auto position_less = []
+                                            (auto const& l, auto const& r) -> bool
+                                            {
+                                              using exp::algorithm::event_api::get_position;
+                                              return get_position (l) == get_position (r)
+                                                ? l.type < r.type
+                                                : get_position (l) < get_position (r);
+                                            };
+                                                                 
+                                          using exp::algorithm::event_api::get_position;
+                                          std::vector<rectangle> before_open_range_0;
+                                          auto found_open_0 = std::lower_bound (parameters_0.begin(), parameters_0.end()
+                                                                                , event_0{exp::algorithm::event_type::begin
+                                                                                            , interval_0{e_1.interval.rectangle}}
+                                                                                , position_less);
+                                          while (found_open_0->interval.rectangle != e_1.interval.rectangle)
+                                            ++found_open_0;
+                                          assert (found_open_0->interval.rectangle == e_1.interval.rectangle);
+                                          auto open_last_0 = std::upper_bound (found_open_0, parameters_0.end(), get_opposite_event(e_1)
+                                                                               , position_less);
+                                          //assert (std::lower_bound (parameters_0.begin(), parameters_0.end(), e_0) == parameters_0.end());
+                                          assert (found_open_0->interval.rectangle == get_opposite_event(e_1).interval.rectangle);
+                                          assert (found_open_0 != parameters_0.end());
+                                          std::vector<rectangle> after_open_range_0;
+                                          std::vector<rectangle> before_open_range_1;
+                                          auto found_open_1 = std::lower_bound (parameters_1.begin(), parameters_1.end(), get_opposite_event(e_1)
+                                                                                , position_less);
+                                          assert (*found_open_1 == get_opposite_event(e_1));
+                                          auto open_last_1 = std::upper_bound (found_open_1, parameters_1.end(), get_opposite_event(e_1)
+                                                                               , position_less);
+                                          auto found_close_1 = std::lower_bound (found_open_1, parameters_1.end(), e_1
+                                                                                 , position_less);
+                                          {
+                                            decltype(parameters_1.rend()) reverse_found_close_1 (found_close_1);
+                                            for (; reverse_found_close_1 != parameters_1.rend()
+                                                   && get_position (*reverse_found_close_1) == get_position(e_1)
+                                                   ; ++reverse_found_close_1)
+                                              ;
+                                            found_close_1 = reverse_found_close_1.base();
+                                          }
+                                            
+                                          std::vector<rectangle> after_open_range_1;
                                           auto get_rectangle = [] (auto&& e) { return e.interval.rectangle; };
                                           {
-                                            
-                                            bool found = false;
-                                            while (current_0 != parameters_0.end()
-                                                   && (!found || get_position(*current_0) == get_position(*found_0)))
+                                            auto current_0 = parameters_0.begin();
+                                            while (current_0 != open_last_0)
                                             {
-                                              if (current_0 == found_0)
-                                                found = true;
-                                              else
+                                              std::cout << "looping through " << *current_0 << std::endl;
+                                              // skip my own rectangle
+                                              if (current_0 != found_open_0)
                                               {
-                                                assert (current_1->type == event_type::begin);
-                                                open_range_0.push_back (get_rectangle(*current_0));
+                                                assert (current_0->type == event_type::begin);
+                                                std::cout << "adding " << *current_0 << std::endl;
+                                                before_open_range_0.push_back (get_rectangle(*current_0));
                                               }
                                               ++current_0;
                                             }
                                           }
-                                          assert (current_0 != found_0);
                                           std::transform
-                                            (current_0, parameters_0.end()
-                                             , std::back_inserter(close_range_0)
+                                            (open_last_0, parameters_0.end()
+                                             , std::back_inserter(after_open_range_0)
                                              , get_rectangle);
                                           {
-                                            
-                                            bool found = false;
-                                            while (current_1 != parameters_1.end()
-                                                   && (!found || get_position(*current_1) == get_position(*found_1)))
+                                            auto current_1 = parameters_1.begin();
+                                            while (current_1 != open_last_1)
                                             {
-                                              if (current_1 == found_1)
-                                                found = true;
-                                              else
+                                              if (current_1 != found_open_1)
                                               {
                                                 assert (current_1->type == event_type::begin);
-                                                open_range_1.push_back (get_rectangle(*current_1));
+                                                before_open_range_1.push_back (get_rectangle(*current_1));
                                               }
                                               ++current_1;
                                             }
                                           }
-                                          //assert (current_1 != found_1);
                                           std::transform
-                                            (current_1
-                                             , parameters_1.end()
-                                             , std::back_inserter(close_range_1)
+                                            (open_last_1
+                                             , found_close_1
+                                             , std::back_inserter(after_open_range_1)
                                              , get_rectangle);
 
-                                          std::cout << "open_range_0: " << open_range_0.size() << std::endl;
-                                          for (auto&& r : open_range_0)
-                                            std::cout << "   " << r << std::endl;
-                                          std::cout << "close_range_0: " << close_range_0.size() << std::endl;
-                                          for (auto&& r : close_range_0)
-                                            std::cout << "   " << r << std::endl;
-                                          std::cout << "open_range_1: " << open_range_1.size() << std::endl;
-                                          for (auto&& r : open_range_1)
-                                            std::cout << "   " << r << std::endl;
-                                          std::cout << "close_range_1: " << close_range_1.size() << std::endl;
-                                          for (auto&& r : close_range_1)
-                                            std::cout << "   " << r << std::endl;
+                                          if (before_open_range_1.empty()
+                                              && after_open_range_1.empty())
+                                            return exp::algorithm::sweep_interrupt::continue_;
+                                          // else
+                                          //   std::cout << "before open range_1 " << before_open_range_1.size()
+                                          //             << " after_open_range_1 " << after_open_range_1.empty()
+                                          //             << "before open range_0 " << before_open_range_0.size()
+                                          //             << " after_open_range_0 " << after_open_range_0.empty()
+                                          //             << std::endl;
 
-                                          std::vector<rectangle> open_open;
-                                          std::vector<rectangle> open_close;
-                                          std::vector<rectangle> close_close;
-                                          std::vector<rectangle> close_open;
-                                          auto fill = [] (std::vector<rectangle>& out, std::vector<rectangle> left, std::vector<rectangle> right)
-                                                      {
-                                                        auto cmp = [] (rectangle r, rectangle l)
-                                                                   {
-                                                                     return r.y1 == l.y1
-                                                                       ? r.y2 < l.y2
-                                                                       : r.y1 < l.y1;
-                                                                   };
-                                                        for (auto&& a : left)
-                                                        {
-                                                          auto it = std::lower_bound (right.begin(), right.end(), a, cmp);
-                                                          std::cout << "searching " << a << " found " << *it << std::endl;
-                                                          if (it != right.end() && a == *it)
-                                                            out.push_back (a);
-                                                        }
-                                                      };
-                                          fill (open_open, open_range_0, open_range_1);
-                                          fill (open_close, open_range_0, close_range_1);
-                                          fill (close_open, close_range_0, open_range_1);
-                                          fill (close_close, close_range_0, close_range_1);
+                                          std::vector<rectangle> before_before;
+                                          std::vector<rectangle> before_after;
+                                          std::vector<rectangle> after_after;
+                                          std::vector<rectangle> after_before;
 
-                                          std::cout << "open_open: " << open_open.size() << std::endl;
-                                          for (auto&& r : open_open)
-                                            std::cout << "   " << r << std::endl;
-                                          std::cout << "open_close: " << open_close.size() << std::endl;
-                                          for (auto&& r : open_close)
-                                            std::cout << "   " << r << std::endl;
-                                          std::cout << "close_open: " << close_open.size() << std::endl;
-                                          for (auto&& r : close_open)
-                                            std::cout << "   " << r << std::endl;
-                                          std::cout << "close_close: " << close_close.size() << std::endl;
-                                          for (auto&& r : close_close)
-                                            std::cout << "   " << r << std::endl;
+                                          ::fill (before_before, before_open_range_0, before_open_range_1);
+                                          ::fill (before_after, before_open_range_0, after_open_range_1);
+                                          ::fill (after_before, after_open_range_0, before_open_range_1);
+                                          ::fill (after_after, after_open_range_0, after_open_range_1);
+
+                                          if (before_before.empty()
+                                              && before_after.empty()
+                                              && after_before.empty()
+                                              && after_after.empty())
+                                          {
+                                            std::cout << "no override? for " << e_1.interval.rectangle << std::endl;
+                                            return exp::algorithm::sweep_interrupt::continue_;
+                                          }
+
+                                          ::erase_rectangle (set, e_1.interval.rectangle);
+                                          
+                                          if (!before_before.empty())
+                                            ::handle_before_before (before_before, e_0.interval.rectangle == e_1.interval.rectangle
+                                                                    , e_1.interval.rectangle, set);
+                                          if (!before_after.empty())
+                                            ::handle_before_after (before_after, e_0.interval.rectangle == e_1.interval.rectangle
+                                                                   , e_1.interval.rectangle, set);
+                                          if (!after_before.empty())
+                                            ::handle_after_before (after_before, e_0.interval.rectangle == e_1.interval.rectangle
+                                                                   , e_1.interval.rectangle, set);
+                                          if (!after_after.empty())
+                                            ::handle_after_after (after_after, e_0.interval.rectangle == e_1.interval.rectangle
+                                                                   , e_1.interval.rectangle, set);
+                                          
+                                          return exp::algorithm::sweep_interrupt::break_;
                                         });
+         return r;
        }
      );
+  }
 
-  std::cout << "edges: " << edges.size() << std::endl;
+  std::cout << "new rectangles: " << std::endl;
+
+  std::set <rectangle> rects;
+  for (auto&& s : set)
+  {
+    rects.insert (s.interval.rectangle);
+  }
+  for (auto&& r : rects)
+  {
+    std::cout << "    " << r << std::endl;
+  }
 
   std::cout << "finsihed" << std::endl;
-  return -1;
+  return 0;
 }

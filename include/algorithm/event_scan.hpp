@@ -89,20 +89,23 @@ std::enable_if<std::is_same<sweep_interrupt, typename std::invoke_result<Close&&
     using algorithm::event_api::get_opposite_event;
     if (is_begin_event(i))
     {
+      std::cout << "opening " << i << std::endl;
       actives.push_back (i);
     }
     else if (is_end_event(i))
     {
       if (close (actives, i) == sweep_interrupt::break_)
-        break;
+        return sweep_interrupt::break_;
       auto opposite = get_opposite_event(i);
       auto it = std::lower_bound (actives.begin(), actives.end(), opposite, compare);
       while (it != actives.end() && *it != opposite)
         ++it;
       assert (it != actives.end());
       actives.erase (it);
+      std::cout << "closed " << i << std::endl;
     }
   }
+  return sweep_interrupt::continue_;
 }
     
 } }
