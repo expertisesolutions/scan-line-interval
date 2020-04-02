@@ -644,5 +644,5 @@ int main()
 
   std::cout << "finsihed bigger_x: " << bigger_x << " bigger_y: " << bigger_y << " area " << area << std::endl;
 
-  return -1;
+  return 0;
 }
