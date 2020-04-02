@@ -14,6 +14,7 @@
 #include <iostream>
 #include <variant>
 #include <iterator>
+#include <chrono>
 
 struct vertical_line
 {
@@ -154,6 +155,10 @@ void add_rectangle (std::multiset<exp::algorithm::event<interval<0>>>& set
   if (r.x1 == r.x2 || r.y1 == r.y2)
     return;
 
+  if (!(r.x1 < r.x2 && r.y1 < r.y2))
+  {
+    std::cout << "invalid rect " << r << std::endl;
+  }
   assert (r.x1 < r.x2 && r.y1 < r.y2);
   
   typedef interval<0> interval_0;
@@ -196,33 +201,37 @@ void handle_before_before (std::vector<rectangle> v
                            , rectangle rold
                            , std::multiset<exp::algorithm::event<interval<0>>>& set)
 {
-  std::cout << "before_before: " << v.size() << std::endl;
-  for (auto&& r : v)
-    std::cout << "   " << r << std::endl;
+  //std::cout << "before_before: " << v.size() << std::endl;
+  // for (auto&& r : v)
+  //   std::cout << "   " << r << std::endl;
   if (until_end_0)
   {
-    std::cout << "== completely overrides" << std::endl;
+    //std::cout << "== completely overrides" << std::endl;
   }
   else 
   {
-    // |-------------|
-    // |    v[i]     |
-    // |             |
-    // |  |-------|  |
-    // |  |xxxxxxx|  |
-    // |--+-------+--|
-    //    | rold  |
-    //    |-------|
-    // splits horizontal line, covering the top
-
-    std::cout << "== must redo rectangle making x1 be bigger, replacing for a single rectangle" << std::endl;
-
     int new_x1 = rold.x1;
     for (auto&& r : v)
       new_x1 = std::max (new_x1, r.x2);
 
-    rectangle rnew = {new_x1, rold.x2, rold.y1, rold.y2};
-    add_rectangle (set, rnew);
+    if (new_x1 < rold.x2)
+    {
+      // |-------------|
+      // |    v[i]     |
+      // |             |
+      // |  |-------|  |
+      // |  |xxxxxxx|  |
+      // |--+-------+--|
+      //    | rold  |
+      //    |-------|
+      // splits horizontal line, covering the top
+
+      //std::cout << "== must redo rectangle making x1 be bigger, replacing for a single rectangle" << std::endl;
+      rectangle rnew = {new_x1, rold.x2, rold.y1, rold.y2};
+      add_rectangle (set, rnew);
+    }
+    // else ; // completely overrides it
+
   }
 }
 
@@ -232,10 +241,10 @@ void handle_before_after (std::vector<rectangle> v
                           , std::multiset<exp::algorithm::event<interval<0>>>& set)
 {
   using exp::algorithm::event_api::get_opposite_event;
-  std::cout << "before_after: " << v.size() << std::endl;
+  //std::cout << "before_after: " << v.size() << std::endl;
   assert (!v.empty());
-  for (auto&& r : v)
-    std::cout << "   " << r << std::endl;
+  // for (auto&& r : v)
+  //   std::cout << "   " << r << std::endl;
   if (until_end_0)
   {
     //     |------|
@@ -253,7 +262,7 @@ void handle_before_after (std::vector<rectangle> v
       new_y2 = std::min(new_y2, r.y1);
     rectangle rnew {rold.x1, rold.x2, rold.y1, new_y2};
     add_rectangle (set, rnew);
-    std::cout << "== must redo rectangle making y2 be smaller, replacing for the rectangle " << rnew << std::endl;
+    //std::cout << "== must redo rectangle making y2 be smaller, replacing for the rectangle " << rnew << std::endl;
   }
   else
   {
@@ -271,12 +280,16 @@ void handle_before_after (std::vector<rectangle> v
     auto new_y2 = v[0].y1;
 
     rectangle r1 {rold.x1, rold.x2, rold.y1, new_y2};
-    rectangle r2 {new_x1, rold.x2, new_y2, rold.y2};
     assert (set.size() % 2 == 0);
     add_rectangle (set, r1);
-    add_rectangle (set, r2);
+
+    if (new_x1 < rold.x2)
+    {
+      rectangle r2 {new_x1, rold.x2, new_y2, rold.y2};
+      add_rectangle (set, r2);
+    } // otherwise, completely overrides second rectangle
     assert (set.size() % 2 == 0);
-    std::cout << "== replace overlap with " << v[0] << " with two rectangles " << r1 << " and " << r2 << std::endl;
+    //std::cout << "== replace overlap with " << v[0] << " with two rectangles " << r1 << " and " << r2 << std::endl;
   }
 }
 
@@ -285,9 +298,9 @@ void handle_after_after (std::vector<rectangle> v
                          , rectangle rold
                          , std::multiset<exp::algorithm::event<interval<0>>>& set)
 {
-  std::cout << "== after_after: " << v.size() << std::endl;
-  for (auto&& r : v)
-    std::cout << "   " << r << std::endl;
+  //std::cout << "== after_after: " << v.size() << std::endl;
+  // for (auto&& r : v)
+  //   std::cout << "   " << r << std::endl;
   if (until_end_0) // 
   {
     //
@@ -311,7 +324,7 @@ void handle_after_after (std::vector<rectangle> v
     add_rectangle (set, r1);
     add_rectangle (set, r2);
     assert (set.size() % 2 == 0);
-    std::cout << "== replace overlap with " << v[0] << " with two rectangles " << r1 << " and " << r2 << std::endl;
+    //std::cout << "== replace overlap with " << v[0] << " with two rectangles " << r1 << " and " << r2 << std::endl;
   }
   else
   {
@@ -332,13 +345,16 @@ void handle_after_after (std::vector<rectangle> v
 
     rectangle r1 {rold.x1, rold.x2, rold.y1, new_y1};
     rectangle r2 {rold.x1, new_x2, new_y1, rold.y2};
-    rectangle r3 {new_x1, rold.x2, new_y1, rold.y2};
     assert (set.size() % 2 == 0);
     add_rectangle (set, r1);
     add_rectangle (set, r2);
-    add_rectangle (set, r3);
+    if (new_x1 < rold.x2)
+    {
+      rectangle r3 {new_x1, rold.x2, new_y1, rold.y2};
+      add_rectangle (set, r3);
+    } // otherwise v[i] actually covers the bottom-right corner.
     assert (set.size() % 2 == 0);
-    std::cout << "== replace overlap with " << v[0] << " with three rectangles " << r1 << ", " << r2 << " and " << r3 << std::endl;
+    //std::cout << "== replace overlap with " << v[0] << " with three rectangles " << r1 << ", " << r2 << " and " << r3 << std::endl;
   }
 }
 
@@ -347,9 +363,9 @@ void handle_after_before (std::vector<rectangle> v
                           , rectangle rold
                           , std::multiset<exp::algorithm::event<interval<0>>>& set)
 {
-  std::cout << "== after_before: " << v.size() << std::endl;
-  for (auto&& r : v)
-    std::cout << "   " << r << std::endl;
+  // std::cout << "== after_before: " << v.size() << std::endl;
+  // for (auto&& r : v)
+  //   std::cout << "   " << r << std::endl;
   if (until_end_0) // 
   {
     //        |------|
@@ -363,12 +379,13 @@ void handle_after_before (std::vector<rectangle> v
     //        | v[i] |
     //        |------|
     // splits vertically, covering from the right
-    std::cout << "must redo rectangle making x be bigger, replacing for a single rectangle" << std::endl;
+
+    //std::cout << "must redo rectangle making x be bigger, replacing for a single rectangle" << std::endl;
 
     auto new_x2 = v[0].x1;
     rectangle r1 {rold.x1, new_x2, rold.y1, rold.y2};
     add_rectangle (set, r1);
-    std::cout << "== replace overlap with " << v[0] << " with rectangle " << r1 << std::endl;
+    //std::cout << "== replace overlap with " << v[0] << " with rectangle " << r1 << std::endl;
   }
   else
   {
@@ -387,10 +404,15 @@ void handle_after_before (std::vector<rectangle> v
     auto new_x2 = v[0].x1;
     auto new_x1 = v[0].x2;
     rectangle r1 {rold.x1, new_x2, rold.y1, rold.y2};
-    rectangle r2 {new_x1, rold.x2, rold.y1, rold.y2};
     add_rectangle (set, r1);
-    add_rectangle (set, r2);
-    std::cout << "== replace overlap with " << v[0] << " with two rectangle " << r1 << " and " << r2 << std::endl;
+
+    if (new_x1 < rold.x2)
+    {
+      rectangle r2 {new_x1, rold.x2, rold.y1, rold.y2};
+      add_rectangle (set, r2);
+    } // otherwise v[i] covers bottom-right corner
+    
+    //std::cout << "== replace overlap with " << v[0] << " with two rectangle " << r1 << " and " << r2 << std::endl;
   }
 }
 
@@ -418,22 +440,19 @@ int main()
      , {  5,  20,  20,  35}};
   std::copy (rectangles.begin(), rectangles.end(), exp::algorithm::interval_inserter<event_0> (set));
 
-  int avoid_infinite = 0;
-  
+  auto now = std::chrono::high_resolution_clock::now();
   exp::algorithm::sweep_interrupt r = exp::algorithm::sweep_interrupt::break_;
   while (r == exp::algorithm::sweep_interrupt::break_)
   {
-    if (++avoid_infinite == 10)
-      return -1;
     actives_0.clear();
-    std::cout << "scan_events for x. Set size " << set.size() << std::endl;
+    //std::cout << "scan_events for x. Set size " << set.size() << std::endl;
   r = exp::algorithm::scan_events
     (actives_0, set
      , nullptr
      , [&] (auto&& parameters_0, event_0 const& e_0) -> exp::algorithm::sweep_interrupt
        {
-         std::cout << "X overlaps " << e_0 << std::endl;
-         for (auto&& p : parameters_0) std::cout << "    " << p << std::endl;
+         //std::cout << "X overlaps " << e_0 << std::endl;
+         //for (auto&& p : parameters_0) std::cout << "    " << p << std::endl;
          using exp::algorithm::event_api::get_opposite_event;
          overlapped_0.clear();
 
@@ -456,14 +475,14 @@ int main()
                                       , nullptr
                                       , [&] (auto parameters_1, event_1 const& e_1) -> exp::algorithm::sweep_interrupt
                                         {
-                                          std::cout << "overlaps for " << e_1 << std::endl;
-                                          std::cout << "parameters_0 " << parameters_0.size() << std::endl;
-                                          for (auto && p : parameters_0)
-                                          {
-                                            std::cout << "    " << p << std::endl;
-                                          }
-                                            std::cout << "parameters_1 " << parameters_1.size() << std::endl;
-                                            for (auto&& p : parameters_1) std::cout << "    " << p << std::endl;
+                                          // std::cout << "overlaps for " << e_1 << std::endl;
+                                          // std::cout << "parameters_0 " << parameters_0.size() << std::endl;
+                                          // for (auto && p : parameters_0)
+                                          // {
+                                          //   std::cout << "    " << p << std::endl;
+                                          // }
+                                          //   std::cout << "parameters_1 " << parameters_1.size() << std::endl;
+                                          //   for (auto&& p : parameters_1) std::cout << "    " << p << std::endl;
                                           if (parameters_1.size() == 1)
                                             return exp::algorithm::sweep_interrupt::continue_;
                                           else
@@ -516,12 +535,12 @@ int main()
                                             auto current_0 = parameters_0.begin();
                                             while (current_0 != open_last_0)
                                             {
-                                              std::cout << "looping through " << *current_0 << std::endl;
+                                              //std::cout << "looping through " << *current_0 << std::endl;
                                               // skip my own rectangle
                                               if (current_0 != found_open_0)
                                               {
                                                 assert (current_0->type == event_type::begin);
-                                                std::cout << "adding " << *current_0 << std::endl;
+                                                //std::cout << "adding " << *current_0 << std::endl;
                                                 before_open_range_0.push_back (get_rectangle(*current_0));
                                               }
                                               ++current_0;
@@ -553,11 +572,11 @@ int main()
                                               && after_open_range_1.empty())
                                             return exp::algorithm::sweep_interrupt::continue_;
                                           // else
-                                          //   std::cout << "before open range_1 " << before_open_range_1.size()
-                                          //             << " after_open_range_1 " << after_open_range_1.empty()
-                                          //             << "before open range_0 " << before_open_range_0.size()
-                                          //             << " after_open_range_0 " << after_open_range_0.empty()
-                                          //             << std::endl;
+                                            // std::cout << "before open range_1 " << before_open_range_1.size()
+                                            //           << " after_open_range_1 " << after_open_range_1.empty()
+                                            //           << "before open range_0 " << before_open_range_0.size()
+                                            //           << " after_open_range_0 " << after_open_range_0.empty()
+                                            //           << std::endl;
 
                                           std::vector<rectangle> before_before;
                                           std::vector<rectangle> before_after;
@@ -574,7 +593,7 @@ int main()
                                               && after_before.empty()
                                               && after_after.empty())
                                           {
-                                            std::cout << "no override? for " << e_1.interval.rectangle << std::endl;
+                                            //std::cout << "no override? for " << e_1.interval.rectangle << std::endl;
                                             return exp::algorithm::sweep_interrupt::continue_;
                                           }
 
@@ -600,18 +619,30 @@ int main()
      );
   }
 
-  std::cout << "new rectangles: " << std::endl;
+  auto diff = std::chrono::high_resolution_clock::now() - now;
+  std::cout << "Time calculation "
+            << std::chrono::duration_cast<std::chrono::seconds>(diff).count()
+            << "s" << std::endl;
 
   std::set <rectangle> rects;
   for (auto&& s : set)
   {
     rects.insert (s.interval.rectangle);
   }
+  int bigger_x = 0, bigger_y = 0;
+  long area = 0;
+  std::cout << "new rectangles: " << rects.size() << std::endl;
   for (auto&& r : rects)
   {
     std::cout << "    " << r << std::endl;
+    if (r.x2 > bigger_x)
+      bigger_x = r.x2;
+    if (r.y2 > bigger_y)
+      bigger_y = r.y2;
+    area += (r.x2-r.x1)*(r.y2-r.y1);
   }
 
-  std::cout << "finsihed" << std::endl;
-  return 0;
+  std::cout << "finsihed bigger_x: " << bigger_x << " bigger_y: " << bigger_y << " area " << area << std::endl;
+
+  return -1;
 }
