@@ -210,6 +210,7 @@ void handle_before_before (std::vector<rectangle> v
   }
   else 
   {
+    //std::cout << "v.size() " << v.size() << std::endl;
     int new_x1 = rold.x1;
     for (auto&& r : v)
       new_x1 = std::max (new_x1, r.x2);
@@ -226,9 +227,9 @@ void handle_before_before (std::vector<rectangle> v
       //    |-------|
       // splits horizontal line, covering the top
 
-      //std::cout << "== must redo rectangle making x1 be bigger, replacing for a single rectangle" << std::endl;
       rectangle rnew = {new_x1, rold.x2, rold.y1, rold.y2};
       add_rectangle (set, rnew);
+      //std::cout << "== must redo rectangle making x1 be bigger, replacing for a single rectangle " << rnew << std::endl;
     }
     // else ; // completely overrides it
 
@@ -245,6 +246,7 @@ void handle_before_after (std::vector<rectangle> v
   assert (!v.empty());
   // for (auto&& r : v)
   //   std::cout << "   " << r << std::endl;
+  // std::cout << "v.size() " << v.size() << std::endl;
   if (until_end_0)
   {
     //     |------|
@@ -282,10 +284,10 @@ void handle_before_after (std::vector<rectangle> v
     rectangle r1 {rold.x1, rold.x2, rold.y1, new_y2};
     assert (set.size() % 2 == 0);
     add_rectangle (set, r1);
+    rectangle r2 {new_x1, rold.x2, new_y2, rold.y2};
 
     if (new_x1 < rold.x2)
     {
-      rectangle r2 {new_x1, rold.x2, new_y2, rold.y2};
       add_rectangle (set, r2);
     } // otherwise, completely overrides second rectangle
     assert (set.size() % 2 == 0);
@@ -301,6 +303,7 @@ void handle_after_after (std::vector<rectangle> v
   //std::cout << "== after_after: " << v.size() << std::endl;
   // for (auto&& r : v)
   //   std::cout << "   " << r << std::endl;
+  // std::cout << "v.size() " << v.size() << std::endl;
   if (until_end_0) // 
   {
     //
@@ -348,9 +351,9 @@ void handle_after_after (std::vector<rectangle> v
     assert (set.size() % 2 == 0);
     add_rectangle (set, r1);
     add_rectangle (set, r2);
+      rectangle r3 {new_x1, rold.x2, new_y1, rold.y2};
     if (new_x1 < rold.x2)
     {
-      rectangle r3 {new_x1, rold.x2, new_y1, rold.y2};
       add_rectangle (set, r3);
     } // otherwise v[i] actually covers the bottom-right corner.
     assert (set.size() % 2 == 0);
@@ -363,9 +366,10 @@ void handle_after_before (std::vector<rectangle> v
                           , rectangle rold
                           , std::multiset<exp::algorithm::event<interval<0>>>& set)
 {
-  // std::cout << "== after_before: " << v.size() << std::endl;
+  //std::cout << "== after_before: " << v.size() << std::endl;
   // for (auto&& r : v)
   //   std::cout << "   " << r << std::endl;
+  // std::cout << "v.size() " << v.size() << std::endl;
   if (until_end_0) // 
   {
     //        |------|
@@ -404,11 +408,11 @@ void handle_after_before (std::vector<rectangle> v
     auto new_x2 = v[0].x1;
     auto new_x1 = v[0].x2;
     rectangle r1 {rold.x1, new_x2, rold.y1, rold.y2};
+      rectangle r2 {new_x1, rold.x2, rold.y1, rold.y2};
     add_rectangle (set, r1);
 
     if (new_x1 < rold.x2)
     {
-      rectangle r2 {new_x1, rold.x2, rold.y1, rold.y2};
       add_rectangle (set, r2);
     } // otherwise v[i] covers bottom-right corner
     
@@ -510,19 +514,28 @@ int main()
   std::copy (rectangles.begin(), rectangles.end(), exp::algorithm::interval_inserter<event_0> (set));
   add_regions (set);
 
+  std::cout << "There are " << set.size()/2 << " rectangles" << std::endl;
+
+  //int avoid_infinite = 0;
+
   auto now = std::chrono::high_resolution_clock::now();
   exp::algorithm::sweep_interrupt r = exp::algorithm::sweep_interrupt::break_;
   while (r == exp::algorithm::sweep_interrupt::break_)
   {
+    // if (++avoid_infinite == 10)
+    // {
+    //   std::cout << "avoid infinite" << std::endl;
+    //   return -1;
+    // }
     actives_0.clear();
     //std::cout << "scan_events for x. Set size " << set.size() << std::endl;
   r = exp::algorithm::scan_events
     (actives_0, set
      , nullptr
-     , [&] (auto&& parameters_0, event_0 const& e_0) -> exp::algorithm::sweep_interrupt
+     , [&] (auto&& parameters_0, event_0 e_0) -> exp::algorithm::sweep_interrupt
        {
          //std::cout << "X overlaps " << e_0 << std::endl;
-         //for (auto&& p : parameters_0) std::cout << "    " << p << std::endl;
+         // for (auto&& p : parameters_0) std::cout << "    " << p << std::endl;
          using exp::algorithm::event_api::get_opposite_event;
          overlapped_0.clear();
 
@@ -543,144 +556,64 @@ int main()
          auto r =
          exp::algorithm::scan_events (actives_1, overlapped_0
                                       , nullptr
-                                      , [&] (auto parameters_1, event_1 const& e_1) -> exp::algorithm::sweep_interrupt
+                                      , [&] (auto parameters_1, event_1 e_1) -> exp::algorithm::sweep_interrupt
                                         {
-                                          // std::cout << "overlaps for " << e_1 << std::endl;
-                                          // std::cout << "parameters_0 " << parameters_0.size() << std::endl;
-                                          // for (auto && p : parameters_0)
-                                          // {
-                                          //   std::cout << "    " << p << std::endl;
-                                          // }
-                                          //   std::cout << "parameters_1 " << parameters_1.size() << std::endl;
-                                          //   for (auto&& p : parameters_1) std::cout << "    " << p << std::endl;
-                                          if (parameters_1.size() == 1)
-                                            return exp::algorithm::sweep_interrupt::continue_;
-                                          else
+                                          auto iterator_0 = parameters_0.begin();
+                                          auto iterator_1 = parameters_1.begin();
+                                          auto close_iterator = parameters_1.end();
+                                          bool before_0 = true, before_1 = true;
+
+                                          while (iterator_1 != close_iterator)
                                           {
-                                          }
-                                          auto position_less = []
-                                            (auto const& l, auto const& r) -> bool
+                                            iterator_0 = parameters_0.begin();
+                                            before_0 = true; before_1 = true;
+
+                                            if (iterator_1->interval.rectangle == e_1.interval.rectangle)
                                             {
-                                              using exp::algorithm::event_api::get_position;
-                                              return get_position (l) == get_position (r)
-                                                ? l.type < r.type
-                                                : get_position (l) < get_position (r);
-                                            };
-                                                                 
-                                          using exp::algorithm::event_api::get_position;
-                                          std::vector<rectangle> before_open_range_0;
-                                          auto found_open_0 = std::lower_bound (parameters_0.begin(), parameters_0.end()
-                                                                                , event_0{exp::algorithm::event_type::begin
-                                                                                            , interval_0{e_1.interval.rectangle}}
-                                                                                , position_less);
-                                          while (found_open_0->interval.rectangle != e_1.interval.rectangle)
-                                            ++found_open_0;
-                                          assert (found_open_0->interval.rectangle == e_1.interval.rectangle);
-                                          auto open_last_0 = std::upper_bound (found_open_0, parameters_0.end(), get_opposite_event(e_1)
-                                                                               , position_less);
-                                          //assert (std::lower_bound (parameters_0.begin(), parameters_0.end(), e_0) == parameters_0.end());
-                                          assert (found_open_0->interval.rectangle == get_opposite_event(e_1).interval.rectangle);
-                                          assert (found_open_0 != parameters_0.end());
-                                          std::vector<rectangle> after_open_range_0;
-                                          std::vector<rectangle> before_open_range_1;
-                                          auto found_open_1 = std::lower_bound (parameters_1.begin(), parameters_1.end(), get_opposite_event(e_1)
-                                                                                , position_less);
-                                          assert (*found_open_1 == get_opposite_event(e_1));
-                                          auto open_last_1 = std::upper_bound (found_open_1, parameters_1.end(), get_opposite_event(e_1)
-                                                                               , position_less);
-                                          auto found_close_1 = std::lower_bound (found_open_1, parameters_1.end(), e_1
-                                                                                 , position_less);
-                                          {
-                                            decltype(parameters_1.rend()) reverse_found_close_1 (found_close_1);
-                                            for (; reverse_found_close_1 != parameters_1.rend()
-                                                   && get_position (*reverse_found_close_1) == get_position(e_1)
-                                                   ; ++reverse_found_close_1)
-                                              ;
-                                            found_close_1 = reverse_found_close_1.base();
-                                          }
-                                            
-                                          std::vector<rectangle> after_open_range_1;
-                                          auto get_rectangle = [] (auto&& e) { return e.interval.rectangle; };
-                                          {
-                                            auto current_0 = parameters_0.begin();
-                                            while (current_0 != open_last_0)
-                                            {
-                                              //std::cout << "looping through " << *current_0 << std::endl;
-                                              // skip my own rectangle
-                                              if (current_0 != found_open_0)
-                                              {
-                                                assert (current_0->type == event_type::begin);
-                                                //std::cout << "adding " << *current_0 << std::endl;
-                                                before_open_range_0.push_back (get_rectangle(*current_0));
-                                              }
-                                              ++current_0;
+                                              ++iterator_1;
+                                              before_1 = false;
                                             }
-                                          }
-                                          std::transform
-                                            (open_last_0, parameters_0.end()
-                                             , std::back_inserter(after_open_range_0)
-                                             , get_rectangle);
-                                          {
-                                            auto current_1 = parameters_1.begin();
-                                            while (current_1 != open_last_1)
+
+                                            if (iterator_1 == close_iterator)
+                                              break;
+
+                                            while (iterator_1->interval.rectangle != iterator_0->interval.rectangle)
                                             {
-                                              if (current_1 != found_open_1)
-                                              {
-                                                assert (current_1->type == event_type::begin);
-                                                before_open_range_1.push_back (get_rectangle(*current_1));
-                                              }
-                                              ++current_1;
+                                              if (iterator_0->interval.rectangle == e_1.interval.rectangle)
+                                                before_0 = false;
+                                              ++iterator_0;
                                             }
+
+                                            // when can we discard this as a non-overlap?
+                                            auto rect1 = iterator_1->interval.rectangle;
+                                            auto rect2 = e_1.interval.rectangle;
+                                            if (rect1.x2 <= rect2.x1 || rect1.y2 <= rect2.y1 || rect1.x1 >=  rect2.x2 || rect1.y1 >= rect2.y2)
+                                              ++iterator_1;
+                                            else
+                                              break;
                                           }
-                                          std::transform
-                                            (open_last_1
-                                             , found_close_1
-                                             , std::back_inserter(after_open_range_1)
-                                             , get_rectangle);
 
-                                          if (before_open_range_1.empty()
-                                              && after_open_range_1.empty())
+                                          if (iterator_1 == close_iterator)
                                             return exp::algorithm::sweep_interrupt::continue_;
-                                          // else
-                                            // std::cout << "before open range_1 " << before_open_range_1.size()
-                                            //           << " after_open_range_1 " << after_open_range_1.empty()
-                                            //           << "before open range_0 " << before_open_range_0.size()
-                                            //           << " after_open_range_0 " << after_open_range_0.empty()
-                                            //           << std::endl;
 
-                                          std::vector<rectangle> before_before;
-                                          std::vector<rectangle> before_after;
-                                          std::vector<rectangle> after_after;
-                                          std::vector<rectangle> after_before;
-
-                                          ::fill (before_before, before_open_range_0, before_open_range_1);
-                                          ::fill (before_after, before_open_range_0, after_open_range_1);
-                                          ::fill (after_before, after_open_range_0, before_open_range_1);
-                                          ::fill (after_after, after_open_range_0, after_open_range_1);
-
-                                          if (before_before.empty()
-                                              && before_after.empty()
-                                              && after_before.empty()
-                                              && after_after.empty())
-                                          {
-                                            //std::cout << "no override? for " << e_1.interval.rectangle << std::endl;
-                                            return exp::algorithm::sweep_interrupt::continue_;
-                                          }
+                                          // std::cout << "trying " << iterator_1->interval.rectangle << " and " << e_1 << std::endl;
 
                                           ::erase_rectangle (set, e_1.interval.rectangle);
-                                          
-                                          if (!before_before.empty())
-                                            ::handle_before_before (before_before, e_0.interval.rectangle == e_1.interval.rectangle
-                                                                    , e_1.interval.rectangle, set);
-                                          if (!before_after.empty())
-                                            ::handle_before_after (before_after, e_0.interval.rectangle == e_1.interval.rectangle
-                                                                   , e_1.interval.rectangle, set);
-                                          if (!after_before.empty())
-                                            ::handle_after_before (after_before, e_0.interval.rectangle == e_1.interval.rectangle
-                                                                   , e_1.interval.rectangle, set);
-                                          if (!after_after.empty())
-                                            ::handle_after_after (after_after, e_0.interval.rectangle == e_1.interval.rectangle
-                                                                   , e_1.interval.rectangle, set);
+                                          std::vector<rectangle> v {iterator_1->interval.rectangle};
+                                          if (before_0)
+                                          {
+                                            if (before_1)
+                                              handle_before_before (v, e_1.interval.rectangle == e_0.interval.rectangle, e_1.interval.rectangle, set);
+                                            else
+                                              handle_before_after (v, e_1.interval.rectangle == e_0.interval.rectangle, e_1.interval.rectangle, set);
+                                          }
+                                          else
+                                          {
+                                            if (before_1)
+                                              handle_after_before (v, e_1.interval.rectangle == e_0.interval.rectangle, e_1.interval.rectangle, set);
+                                            else
+                                              handle_after_after (v, e_1.interval.rectangle == e_0.interval.rectangle, e_1.interval.rectangle, set);
+                                          }
                                           
                                           return exp::algorithm::sweep_interrupt::break_;
                                         });
