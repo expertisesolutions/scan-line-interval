@@ -16,45 +16,6 @@
 #include <iterator>
 #include <chrono>
 
-struct vertical_line
-{
-  int x;
-  std::pair<int, int> y_range;
-};
-// struct y_line
-// {
-//   int y;
-//   std::pair<int, int> x_range;
-// };
-bool operator==(vertical_line l, vertical_line r)
-{
-  return l.x == r.x && l.y_range == r.y_range;
-}
-bool operator!=(vertical_line l, vertical_line r)
-{
-  return !(l == r);
-}
-bool operator<(vertical_line l, vertical_line r)
-{
-  return l.x == r.x
-    ? l.y_range < r.y_range
-    : l.x < r.x;
-}
-// bool operator==(y_line l, y_line r)
-// {
-//   return l.y == r.y && l.x_range == r.x_range;
-// }
-// bool operator!=(y_line l, y_line r)
-// {
-//   return !(l == r);
-// }
-// bool operator<(y_line l, y_line r)
-// {
-//   return l.y == r.y
-//     ? l.x_range < r.x_range
-//     : l.y < r.y;
-// }
-
 struct rectangle
 {
   int x1, x2;
@@ -515,20 +476,30 @@ int main()
   add_regions (set);
 
   std::cout << "There are " << set.size()/2 << " rectangles" << std::endl;
-
-  //int avoid_infinite = 0;
-
+  {
+    std::set <rectangle> rects;
+    for (auto&& s : set)
+    {
+      rects.insert (s.interval.rectangle);
+    }
+    int bigger_x = 0, bigger_y = 0;
+    long area = 0;
+    for (auto&& r : rects)
+    {
+      if (r.x2 > bigger_x)
+        bigger_x = r.x2;
+      if (r.y2 > bigger_y)
+        bigger_y = r.y2;
+      area += (r.x2-r.x1)*(r.y2-r.y1);
+    }
+    std::cout << "bigger_x " << bigger_x << " bigger_y " << bigger_y << " area " << area << std::endl;
+  }
+  
   auto now = std::chrono::high_resolution_clock::now();
   exp::algorithm::sweep_interrupt r = exp::algorithm::sweep_interrupt::break_;
   while (r == exp::algorithm::sweep_interrupt::break_)
   {
-    // if (++avoid_infinite == 10)
-    // {
-    //   std::cout << "avoid infinite" << std::endl;
-    //   return -1;
-    // }
     actives_0.clear();
-    //std::cout << "scan_events for x. Set size " << set.size() << std::endl;
   r = exp::algorithm::scan_events
     (actives_0, set
      , nullptr
@@ -583,6 +554,7 @@ int main()
                                                 before_0 = false;
                                               ++iterator_0;
                                             }
+                                            assert (iterator_0 != parameters_0.end());
 
                                             // when can we discard this as a non-overlap?
                                             auto rect1 = iterator_1->interval.rectangle;
@@ -647,5 +619,5 @@ int main()
 
   std::cout << "finsihed bigger_x: " << bigger_x << " bigger_y: " << bigger_y << " area " << area << std::endl;
 
-  return -1;
+  return 0;
 }

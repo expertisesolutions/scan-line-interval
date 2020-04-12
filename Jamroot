@@ -12,4 +12,5 @@ alias testsuite :
  [ run tests/event_scan_2d_1.cpp event_scan ]
  [ run tests/event_scan_2d_2.cpp event_scan ]
  [ run tests/event_scan_2d_3.cpp event_scan ]
+ [ run tests/partition_1.cpp event_scan ]
  ;
