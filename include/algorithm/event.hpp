@@ -41,6 +41,7 @@ inline event_type operator~(event_type t)
 template <typename I>
 struct event
 {
+  typedef I interval_type;
   event_type type;
   I interval;
 };

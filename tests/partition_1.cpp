@@ -24,10 +24,10 @@ int main()
          , { { 0,  20}, { 30 , 50}}
          , { { 5,  20}, { 20,  35}}};
   
-  exp::algorithm::rectangle_partition (rects);
+  rects = exp::algorithm::rectangle_partition (rects);
+  std::cout << "new rectangles" << std::endl;
+  for (auto&& r : rects)
+    std::cout << "r: " << r << std::endl;
 
-  
-
-  return 0;
-
+  return -1;
 }

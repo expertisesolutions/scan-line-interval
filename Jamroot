@@ -5,12 +5,14 @@
 
 import testing : run ;
 
-alias event_scan : : : : <include>include <cxxflags>-std=c++2a ;
+project sweep-interval ;
+
+alias sweep-interval : : : : <include>include <cxxflags>-std=c++2a ;
 
 alias testsuite :
- [ run tests/event_scan1.cpp event_scan ]
- [ run tests/event_scan_2d_1.cpp event_scan ]
- [ run tests/event_scan_2d_2.cpp event_scan ]
- [ run tests/event_scan_2d_3.cpp event_scan ]
- [ run tests/partition_1.cpp event_scan ]
+ [ run tests/event_scan1.cpp sweep-interval ]
+ [ run tests/event_scan_2d_1.cpp sweep-interval ]
+ [ run tests/event_scan_2d_2.cpp sweep-interval ]
+ [ run tests/event_scan_2d_3.cpp sweep-interval ]
+ [ run tests/partition_1.cpp sweep-interval ]
  ;

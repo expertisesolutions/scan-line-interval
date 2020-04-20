@@ -19,7 +19,7 @@ namespace interval_api {
 template <typename T>
 std::ostream& operator<<(std::ostream& os, std::pair<T, T> i)
 {
-  return os << "[x1: " << i.first << " x2: " << i.second << "]" << std::endl;
+  return os << "[x1: " << i.first << " x2: " << i.second << "]";
 }
   
 template <typename T, typename Enable = void>

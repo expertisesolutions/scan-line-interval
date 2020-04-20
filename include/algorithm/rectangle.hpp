@@ -16,6 +16,9 @@ namespace exp { namespace algorithm {
 template <typename I0, typename I1>
 struct rectangle
 {
+  typedef I0 i0_type;
+  typedef I1 i1_type;
+  
   I0 i0;
   I1 i1;
 };
