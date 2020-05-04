@@ -10,7 +10,6 @@
 #define ALGORITHM_SPLIT_RECTANGLES_HPP
 
 #include <cassert>
-#include <iostream>
 
 namespace exp { namespace algorithm {
 
@@ -36,11 +35,62 @@ template <typename R>
 auto rget_y2 (R&& r) { using algorithm::interval_api::get_interval_end; return get_interval_end(r.i1); }
 
 }
+
+template <typename Rectangle>
+std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_before_t, overlap_disposition_before_t)
+{
+  // ix1       ix2
+  //    ex1        ex2
+  // +---------+             iy1
+  // | divisor |
+  // |         |
+  // |  +------+---+         ey1
+  // |  |xxxxxx|   |
+  // |  |xxxxxx|   |
+  // +--+------+---|         iy2
+  //    | dividend |
+  //    +----------+         ey2
+
+  auto ex1 = detail::rget_x1 (dividend)
+    , ix2 = detail::rget_x2 (divisor)
+    , ex2 = detail::rget_x2 (dividend)
+    , ey1 = detail::rget_y1 (dividend)
+    , iy2 = detail::rget_y2 (divisor)
+    , ey2 = detail::rget_y2 (dividend);
+  std::vector<Rectangle> r;
+  assert (ix2 < ex2 && ey1 < iy2 && iy2 < ey2);
+  return {{{ix2, ex2}, {ey1, iy2}}, {{ex1, ex2}, {iy2, ey2}}};
+}
+
+template <typename Rectangle>
+std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_before_t, overlap_disposition_middle_t)
+{
+  // ix1             ix2
+  //          ex1       ex2
+  //          +---------+   ey1
+  //          | dividend|
+  //          |         |
+  // +--------+------+--|   iy1
+  // |divisor |xxxxxx|  |
+  // |        |xxxxxx|  |
+  // +------+--------+--|   iy2
+  //          |         |    
+  //          +---------+   ey2
+
+  auto ex1 = detail::rget_x1 (dividend)
+    , ix2 = detail::rget_x1 (divisor)
+    , ex2 = detail::rget_x2 (dividend)
+    , ey1 = detail::rget_y1 (dividend)
+    , iy1 = detail::rget_y1 (divisor)
+    , iy2 = detail::rget_y1 (divisor)
+    , ey2 = detail::rget_y2 (dividend);
+  assert (ix2 < ex2 && ey1 < iy1 && iy2 < ey2);
+  return {{{ix2, ex2}, {ey1, iy1}}, {{ix2, ex2}, {iy1, iy2}}, {{ex1, ex2}, {iy2, ey2}}};
+}
     
 template <typename Rectangle>
 std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_before_t, overlap_disposition_after_t)
 {
-  std::cout << "split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_before_t, overlap_disposition_after_t)" << std::endl;
     // ix1       ix2
     //    ex1        ex2
     //    |----------|         ey1
@@ -70,7 +120,6 @@ std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, o
 template <typename Rectangle>
 std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_before_t, overlap_disposition_across_t)
 {
-  std::cout << "split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_before_t, overlap_disposition_across_t)" << std::endl;
     // ix1       ix2
     //    ex1              ex2
     //
@@ -93,11 +142,67 @@ std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, o
   std::vector<Rectangle> r {Rectangle{{ix2, ex2}, {ey1, ey2}}};
   return r;
 }
-    
+
+template <typename Rectangle>
+std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_middle_t, overlap_disposition_before_t)
+{
+  //     ix1      ix2
+  // ex1              ex2
+  //
+  //    |---------|       iy1
+  //    |         |
+  //    | divisor |
+  //    |         |
+  // +---------+------|   ey1
+  // |  |xxxxxxxxx|   |
+  // |--+---------+---|   iy2
+  // |    dividend    |
+  // |----------------|   ey2
+
+  auto ex1 = detail::rget_x1 (dividend)
+    , ix1 = detail::rget_x1 (divisor)
+    , ix2 = detail::rget_x2 (divisor)
+    , ex2 = detail::rget_x2 (dividend)
+    , ey1 = detail::rget_y1 (dividend)
+    , iy2 = detail::rget_y2 (divisor)
+    , ey2 = detail::rget_y2 (dividend);
+
+  assert (ex1 < ix1 && ix2 < ex2 && ey1 < iy2 && iy2 < ey2);
+  return {{{ex1, ex2}, {iy2, ey2}}, {{ex1, ix1}, {ey1, iy2}}, {{ix2, ex2}, {ey1, iy2}}};
+}
+
+template <typename Rectangle>
+std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_middle_t, overlap_disposition_middle_t)
+{
+  //     ix1      ix2
+  // ex1              ex2
+  //
+  // +----------------+   ey1
+  // |   dividend     |
+  // |                |
+  // |--+---------+---|   iy1
+  // |  |xdivisorx|   |
+  // |  |xxxxxxxxx|   |
+  // |--+---------+---|   iy2
+  // |                |
+  // |----------------|   ey2
+
+  auto ex1 = detail::rget_x1 (dividend)
+    , ix1 = detail::rget_x1 (divisor)
+    , ix2 = detail::rget_x2 (divisor)
+    , ex2 = detail::rget_x2 (dividend)
+    , ey1 = detail::rget_y1 (dividend)
+    , iy1 = detail::rget_y1 (divisor)
+    , iy2 = detail::rget_y2 (divisor)
+    , ey2 = detail::rget_y2 (dividend);
+
+  assert (ex1 < ix1 && ix2 < ex2 && ey1 < iy2 && iy2 < ey2);
+  return {{{ex1, ex2}, {ey1, iy1}}, {{ex1, ix1}, {iy1, iy2}}, {{ix2, ex2}, {iy1, iy2}}, {{ex1, ex2}, {iy2, ey2}}};
+}
+
 template <typename Rectangle>
 std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_middle_t, overlap_disposition_after_t)
 {
-  std::cout << "split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_middle_t, overlap_disposition_after_t)" << std::endl;
   //     ix1      ix2
   // ex1              ex2
   //
@@ -127,7 +232,6 @@ std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, o
 template <typename Rectangle>
 std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_middle_t, overlap_disposition_across_t)
 {
-  std::cout << "split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_middle_t, overlap_disposition_across_t)" << std::endl;
   //    ix1       ix2
   // ex1                       ex2
   //
@@ -152,40 +256,65 @@ std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, o
     , ey2 = detail::rget_y2 (dividend)
     , iy2 = detail::rget_y2 (divisor);
   static_cast<void>(iy1); static_cast<void>(iy2);
-  assert (ex1 < ix1 && ix2 < ex2 && iy1 < ey1 && ey2 < iy2);
+  assert (ex1 < ix1 && ix2 < ex2);
   return {{{ex1, ix1}, {ey1, ey2}}, {{ix2, ex2}, {ey1, ey2}}};
 }
-    
-template <typename Rectangle>
-std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_across_t, overlap_disposition_after_t)
-{
-  std::cout << "split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_across_t, overlap_disposition_after_t)" << std::endl;
-  //    ex1       ex2
-  // ix1              ix2
-  //
-  //    |---------|       ey1
-  //    |dividend |    
-  // |--+---------+---|   iy1
-  // |  |xxxxxxxxx|   |
-  // |  |---------|   |   ey2
-  // |                |
-  // |    divisor     |
-  // |                |
-  // |----------------|   iy2
 
+template <typename Rectangle>
+std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_after_t, overlap_disposition_before_t)
+{
+  // ex1       ex2
+  //    ix1        ix2
+  //    +----------+         iy1
+  //    | divisor  |
+  // +--+------+   |         ey1
+  // |  |xxxxxx|   |
+  // |--+------+---+         iy2
+  // |         |
+  // | dividend|
+  // |         |
+  // +---------+             ey2
   auto ex1 = detail::rget_x1 (dividend)
+    , ix1 = detail::rget_x1 (divisor)
     , ex2 = detail::rget_x2 (dividend)
     , ey1 = detail::rget_y1 (dividend)
-    , iy1 = detail::rget_y1 (divisor);
-
-  assert (ey1 < iy1);
-  return {{{ex1, ex2}, {ey1, iy1}}};
+    , iy2 = detail::rget_y2 (divisor)
+    , ey2 = detail::rget_y2 (dividend);
+  assert (ex1 < ix1 && ey1 < iy2 && iy2 < ey2);
+  return {{{ex1, ix1}, {ey1, iy2}}, {{ex1, ex2}, {iy2, ey2}}};
 }
-    
+
+template <typename Rectangle>
+std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_after_t, overlap_disposition_middle_t)
+{
+  // ex1       ex2
+  //    ix1              ix2
+  //
+  // +---------+             ey1
+  // |         |
+  // |--+------+---------|   iy1
+  // |  |xxxxxx|divisor  |
+  // |  |xxxxxx|         |
+  // |  |xxxxxx|         |
+  // |--+------+---------|   iy2
+  // |         |
+  // | dividend|
+  // |         |
+  // |---------|             ey2
+  auto ex1 = detail::rget_x1 (dividend)
+    , ix1 = detail::rget_x1 (divisor)
+    , ex2 = detail::rget_x2 (dividend)
+    , ey1 = detail::rget_y1 (dividend)
+    , iy1 = detail::rget_y1 (divisor)
+    , iy2 = detail::rget_y2 (divisor)
+    , ey2 = detail::rget_y2 (dividend);
+  assert (ex1 < ix1 && ey1 < iy1 && iy2 < ey2);
+  return {{{ex1, ex2}, {ey1, iy1}}, {{ex1, ix1}, {iy1, iy2}}, {{ex1, ex2}, {iy2, ey2}}};
+}
+
 template <typename Rectangle>
 std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_after_t, overlap_disposition_after_t)
 {
-  std::cout << "split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_after_t, overlap_disposition_after_t)" << std::endl;
   //           ix1     ix2
   //    ex1        ex2
   //    |----------|         ey1
@@ -203,14 +332,13 @@ std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, o
     , ey1 = detail::rget_y1 (dividend)
     , iy1 = detail::rget_y1 (divisor)
     , ey2 = detail::rget_y2 (dividend);
-  assert (ix1 < ex2 && ey1 < iy1);
+  assert (ex1 < ix1 && ix1 < ex2 && ey1 < iy1);
   return {{{ex1, ix1}, {ey1, ey2}}, {{ix1, ex2}, {ey1, iy1}}};
 }
 
 template <typename Rectangle>
 std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_after_t, overlap_disposition_across_t)
 {
-  std::cout << "split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_after_t, overlap_disposition_across_t)" << std::endl;
   //           ix1     ix2
   // ex1           ex2
   //
@@ -233,7 +361,86 @@ std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, o
   assert (ex1 < ix1);
   return {{{ex1, ix1}, {ey1, ey2}}};
 }
-    
+
+template <typename Rectangle>
+std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_across_t, overlap_disposition_before_t)
+{
+  //    ex1       ex2
+  // ix1              ix2
+  //
+  // +----------------+   iy1
+  // |                |
+  // |    divisor     |
+  // |                |
+  // |  +---------+   |   ey1
+  // |  |xxxxxxxxx|   |
+  // +----------------+   iy2
+  //    |dividend |    
+  //    +---------+       ey2
+  
+  auto ex1 = detail::rget_x1 (dividend)
+    , ex2 = detail::rget_x2 (dividend)
+    , iy2 = detail::rget_y2 (divisor)
+    , ey2 = detail::rget_y2 (dividend);
+
+  assert (iy2 < ey2);
+  return {{{ex1, ex2}, {iy2, ey2}}};
+}
+
+template <typename Rectangle>
+std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_across_t, overlap_disposition_middle_t)
+{
+  //  ix1                ix2
+  //   ex1              ex2
+  //
+  //   +----------------+   ey1
+  //   |   dividend     |
+  //   |                |
+  //  ++----------------++  iy1
+  //  ||xxxxdivisorxxxxx||
+  //  ||xxxxxxxxxxxxxxxx||
+  //  ++----------------++  iy2
+  //   |                |
+  //   +----------------+   ey2
+
+  auto ex1 = detail::rget_x1 (dividend)
+    , ex2 = detail::rget_x2 (dividend)
+    , ey1 = detail::rget_y1 (dividend)
+    , iy1 = detail::rget_y1 (divisor)
+    , iy2 = detail::rget_y2 (divisor)
+    , ey2 = detail::rget_y2 (dividend);
+
+  assert (ey1 < iy1 && iy2 < ey2);
+  return {{{ex1, ex2}, {ey1, iy1}}, {{ex1, ex2}, {iy2, ey2}}};
+}
+
+template <typename Rectangle>
+std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, overlap_disposition_across_t, overlap_disposition_after_t)
+{
+  //    ex1       ex2
+  // ix1              ix2
+  //
+  //    |---------|       ey1
+  //    |dividend |    
+  // |--+---------+---|   iy1
+  // |  |xxxxxxxxx|   |
+  // |  |---------|   |   ey2
+  // |                |
+  // |    divisor     |
+  // |                |
+  // |----------------|   iy2
+
+  auto ex1 = detail::rget_x1 (dividend)
+    , ex2 = detail::rget_x2 (dividend)
+    , ey1 = detail::rget_y1 (dividend)
+    , iy1 = detail::rget_y1 (divisor);
+
+  assert (ey1 < iy1);
+  return {{{ex1, ex2}, {ey1, iy1}}};
+}
+
+
+
 } }
 
 #endif
