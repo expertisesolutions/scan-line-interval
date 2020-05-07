@@ -32,6 +32,7 @@ void erase_rectangle (std::multiset<Event0>& set, Open0& open0, Open1& open1, Ov
   assert (range.first != range.second);
   assert (range.first->interval.rectangle == r);
   auto s = set.size();
+  //std::cout << "erasing (begin) from set " << *range.first << " (searched for " << r << ")" << std::endl;
   set.erase (range.first);
   assert (set.size() + 1 == s);
 
@@ -41,7 +42,7 @@ void erase_rectangle (std::multiset<Event0>& set, Open0& open0, Open1& open1, Ov
   assert (range.first != range.second);
   assert (range.first->interval.rectangle == r);
   s = set.size();
-  // std::cout << "erasing from set " << *range.first << std::endl;
+  //std::cout << "erasing (end) from set " << *range.first << " (searched for " << r << ")" << std::endl;
   set.erase (range.first);
   assert (set.size() + 1 == s);
 
@@ -129,7 +130,7 @@ struct interval_n
   }
   friend std::ostream& operator<< (std::ostream& os, interval_n<Rectangle, N> const& i)
   {
-    return os << "[ interval dim-" << N << " rectangle: " << i.rectangle << "]" << std::endl;
+    return os << "[ interval dim-" << N << " rectangle: " << i.rectangle << "]";
   }
 };
 
@@ -191,7 +192,7 @@ algorithm::sweep_interrupt handle_close_1 (std::vector<Event1>& open_1, Event1 l
   using algorithm::interval_api::get_interval_end;
   using algorithm::interval_api::get_interval_begin;
 
-  // std::cout << "last_close_1 " << last_close_1 << " open_1.size() " << open_1.size() << " open0.size() " << open_0.size() << std::endl;
+  //std::cout << "last_close_1 " << last_close_1 << " open_1.size() " << open_1.size() << " open0.size() " << open_0.size() << std::endl;
   
   //auto current_1 = open_1.begin ();
   std::size_t current_index_1 = 0;
@@ -243,7 +244,7 @@ algorithm::sweep_interrupt handle_close_1 (std::vector<Event1>& open_1, Event1 l
   auto divisor = last_close_1.interval.rectangle
     , dividend = current_1().interval.rectangle;
 
-  // std::cout << "dividend " << dividend << " divisor " << divisor << std::endl;
+  std::cout << "dividend " << dividend << " divisor " << divisor << std::endl;
 
   using algorithm::interval_api::get_interval_begin;
   using algorithm::interval_api::get_interval_end;
@@ -258,85 +259,118 @@ algorithm::sweep_interrupt handle_close_1 (std::vector<Event1>& open_1, Event1 l
   switch (static_cast<int>(closes_after_0) << 3 | static_cast<int>(closes_after_1) << 2 | static_cast<int>(opens_before_0) << 1 | static_cast<int>(opens_before_1))
   {
   case 0b0000:
+    //std::cout << "0b0000:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_middle_t{}, algorithm::overlap_disposition_middle_t{});
     break;
   case 0b0001:
+    //std::cout << "0b0001:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_middle_t{}, algorithm::overlap_disposition_before_t{});
     break;
   case 0b0010:
+    //std::cout << "0b0010:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_before_t{}, algorithm::overlap_disposition_middle_t{});
     break;
   case 0b0011:
+    //std::cout << "0b0011:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_before_t{}, algorithm::overlap_disposition_before_t{});
     break;
   case 0b0100:
+    //std::cout << "0b0100:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_middle_t{}, algorithm::overlap_disposition_after_t{});
     break;
   case 0b0101:
+    //std::cout << "0b0101:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_middle_t{}, algorithm::overlap_disposition_across_t{});
     break;
   case 0b0110:
+    //std::cout << "0b0110:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_before_t{}, algorithm::overlap_disposition_after_t{});
     break;
   case 0b0111:
+    //std::cout << "0b0111:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_before_t{}, algorithm::overlap_disposition_across_t{});
     break;
   case 0b1000:
+    //std::cout << "0b1000:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_after_t{}, algorithm::overlap_disposition_middle_t{});
     break;
   case 0b1001:
+    //std::cout << "0b1001:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_after_t{}, algorithm::overlap_disposition_before_t{});
     break;
   case 0b1010:
+    //std::cout << "0b1010:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_across_t{}, algorithm::overlap_disposition_middle_t{});
     break;
   case 0b1011:
+    //std::cout << "0b1011:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_across_t{}, algorithm::overlap_disposition_before_t{});
     break;
   case 0b1100:
+    //std::cout << "0b1100:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_after_t{}, algorithm::overlap_disposition_after_t{});
     break;
   case 0b1101:
+    //std::cout << "0b1101:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_after_t{}, algorithm::overlap_disposition_across_t{});
     break;
   case 0b1110:
+    //std::cout << "0b1110:" << std::endl;
     split_rectangles = algorithm::split_rectangle (dividend, divisor, algorithm::overlap_disposition_across_t{}, algorithm::overlap_disposition_after_t{});
     break;
   case 0b1111:
+    //std::cout << "0b1111:" << std::endl;
     // completely covers rectangle, just remove it
     break;
   }
-  detail::erase_rectangle (set, open_0, open_1, overlapped_at_0, dividend);
+  if (dividend != first_close_0.interval.rectangle)
+    detail::erase_rectangle (set, open_0, open_1, overlapped_at_0, dividend);
+  else
+    ++current_index_1;
   
   for (auto&& r : split_rectangles)
   {
-    // std::cout << "    split rectangle " << r << std::endl;
+    //std::cout << "split rectangle " << r << std::endl;
     using exp::algorithm::event_api::get_opposite_event;
     Event0 e0 {event_type::begin, r};
     Event1 e1 {event_type::begin, r};
-    set.insert (e0);
-    set.insert (get_opposite_event (e0));
-    overlapped_at_0.insert (e1);
-    overlapped_at_0.insert (get_opposite_event(e1));
-
-    std::less<Event0> const e0_compare;
-    if (e0_compare(e0, first_close_0))
+    auto op_e0 = get_opposite_event (e0);
+    auto it = std::lower_bound (set.begin(), set.end(), e0);
+    if (it == set.end() || *it != e0)
     {
-      // std::cout << "adding open0 " << e0 << " while compared to " << first_close_0 << std::endl;
-      auto it = std::lower_bound (open_0.begin(), open_0.end(), e0, e0_compare);
-      open_0.insert (it, e0);
-      std::less<Event1> const e1_compare;
-      if (e1_compare(e1, last_close_1))
+      std::cout << "  insert e0 " << e0 << " and opposite e0 " << get_opposite_event (e0) << std::endl;
+      set.insert (it, e0);
+      set.insert (op_e0);
+
+      std::less<Event0> const e0_compare;
+      //std::cout << "comparing e0: " << e0 << " with first_close_0: " << first_close_0 << std::endl;
+      if (e0_compare(e0, first_close_0) // must begin before end
+          && e0_compare(first_close_0, op_e0)) // and must not have closed yet
       {
-        // std::cout << "adding open1 " << e1 << " while compared to " << last_close_1 << std::endl;
-        auto it = std::lower_bound (open_1.begin(), open_1.end(), e1, e1_compare);
-        open_1.insert (it, e1);
+        //std::cout << "  adding open0 " << e0 << " while compared to " << first_close_0 << std::endl;
+        auto it = std::lower_bound (open_0.begin(), open_0.end(), e0, e0_compare);
+        open_0.insert (it, e0);
+
+        // lets add to overlapped_at_0 only if we add to open_0
+        auto op_e1 = get_opposite_event (e1);
+        overlapped_at_0.insert (e1);
+        overlapped_at_0.insert (op_e1);
+
+        std::less<Event1> const e1_compare;
+        //std::cout << "comparing e1: " << e1 << " with last_close_1: " << last_close_1 << std::endl;
+        if (e1_compare(e1, last_close_1) // must begin before end
+            && e1_compare(last_close_1, op_e1)) // and must not have closed yet
+        {
+          //std::cout << "  adding open1 " << e1 << " while compared to " << last_close_1 << std::endl;
+          auto it = std::lower_bound (open_1.begin(), open_1.end(), e1, e1_compare);
+          open_1.insert (it, e1);
+        }
       }
     }
   }
 
 
-  }  
+  }
   //return sweep_interrupt::break_;
   return sweep_interrupt::continue_;
 }

@@ -78,14 +78,14 @@ std::vector<Rectangle> split_rectangle (Rectangle dividend, Rectangle divisor, o
   //          +---------+   ey2
 
   auto ex1 = detail::rget_x1 (dividend)
-    , ix2 = detail::rget_x1 (divisor)
+    , ix2 = detail::rget_x2 (divisor)
     , ex2 = detail::rget_x2 (dividend)
     , ey1 = detail::rget_y1 (dividend)
     , iy1 = detail::rget_y1 (divisor)
-    , iy2 = detail::rget_y1 (divisor)
+    , iy2 = detail::rget_y2 (divisor)
     , ey2 = detail::rget_y2 (dividend);
-  assert (ix2 < ex2 && ey1 < iy1 && iy2 < ey2);
-  return {{{ix2, ex2}, {ey1, iy1}}, {{ix2, ex2}, {iy1, iy2}}, {{ex1, ex2}, {iy2, ey2}}};
+  assert (ey1 < iy1 && iy2 < ey2);
+  return {{{ex1, ex2}, {ey1, iy1}}, {{ix2, ex2}, {iy1, iy2}}, {{ex1, ex2}, {iy2, ey2}}};
 }
     
 template <typename Rectangle>
